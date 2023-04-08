@@ -33,6 +33,23 @@ const run = async (cmd: string): Promise<[string, string, Error | null]> => {
     });
 };
 
+const standardDevDependencies = [
+    '@types/mocha',
+    '@types/node',
+    '@typescript-eslint/eslint-plugin',
+    '@typescript-eslint/parser',
+    'eslint',
+    'eslint-config-standard',
+    'eslint-plugin-import',
+    'eslint-plugin-n',
+    'eslint-plugin-node',
+    'eslint-plugin-promise',
+    'mocha',
+    'ts-node',
+    'typedoc',
+    'typescript'
+];
+
 const format_dep = (dependencies: string[], latest = false): string =>
     (latest ? dependencies.map(dep => `${dep}@latest`) : dependencies)
         .join(' ');
@@ -42,6 +59,8 @@ const format_dep = (dependencies: string[], latest = false): string =>
     const is_npm = existsSync(resolve(cwd, './package-lock.json'));
     const latest = process.argv.map(e => e.toLowerCase().trim())
         .includes('latest');
+    const setup = process.argv.map(e => e.toLowerCase().trim())
+        .includes('setup');
 
     const config = require(resolve(cwd, './package.json'));
 
@@ -66,85 +85,103 @@ const format_dep = (dependencies: string[], latest = false): string =>
         }
     } else if (is_yarn) {
         Logger.warn('Yarn detected...');
-    } else {
+    } else if (!setup) {
         Logger.error('Cannot detect package management system');
 
         return process.exit(1);
     }
 
-    if (latest) {
-        Logger.warn('Set to update all dependencies to the latest version...');
-    } else {
-        Logger.warn('Set to update all dependencies to latest version within the rules in package.json...');
-    }
+    if (setup) {
+        Logger.info('Setting up standard development dependencies...');
 
-    if (!is_yarn) {
-        if (dependencies.length !== 0) {
-            Logger.info('Updating %s dependencies...', dependencies.length);
-
-            const [stdout] = await run(`${cmd} ${format_dep(dependencies, latest)}`);
+        if (is_npm) {
+            const [stdout] = await run(
+                `npm install --save --dev ${format_dep(standardDevDependencies, latest)}`);
 
             stdout.split('\n')
                 .map(line => Logger.debug(line));
-        }
-
-        if (devDependencies.length !== 0) {
-            Logger.info('Updating %s development dependencies...', devDependencies.length);
-
-            const [stdout] = await run(`${cmd} --dev ${format_dep(devDependencies, latest)}`);
-
-            stdout.split('\n')
-                .map(line => Logger.debug(line));
-        }
-
-        if (peerDependencies.length !== 0) {
-            Logger.info('Updating %s peer dependencies...', peerDependencies.length);
-
-            const [stdout] = await run(`${cmd} --dev ${format_dep(peerDependencies, latest)}`);
-
-            stdout.split('\n')
-                .map(line => Logger.debug(line));
-        }
-
-        if (optionalDependencies.length !== 0) {
-            Logger.info('Updating %s dependencies...', optionalDependencies.length);
-
-            const [stdout] = await run(`${cmd} ${format_dep(optionalDependencies, latest)}`);
+        } else {
+            const [stdout] = await run(
+                `yarn add --dev ${format_dep(standardDevDependencies, latest)}`);
 
             stdout.split('\n')
                 .map(line => Logger.debug(line));
         }
     } else {
-        Logger.info('Updating %s dependencies',
-            dependencies.length + devDependencies.length + peerDependencies.length + optionalDependencies.length);
-
-        const [stdout] = await run(`${cmd} upgrade${latest ? ' --latest' : ''}`);
-
-        stdout.split('\n')
-            .map(line => Logger.debug(line));
-    }
-
-    Logger.warn('Running audit checks...');
-
-    if (is_npm) {
-        const [stdout, stderr, error] = await run('npm audit fix');
-
-        stdout.split('\n')
-            .map(line => Logger.debug(line));
-
-        if (error || stderr.length !== 0) {
-            stderr.split('\n')
-                .map(line => Logger.error(line));
+        if (latest) {
+            Logger.warn('Set to update all dependencies to the latest version...');
+        } else {
+            Logger.warn('Set to update all dependencies to latest version within the rules in package.json...');
         }
-    } else {
-        const [stdout, stderr, error] = await run('yarn audit');
 
-        stdout.split('\n')
-            .map(line => Logger.debug(line));
+        if (!is_yarn) {
+            if (dependencies.length !== 0) {
+                Logger.info('Updating %s dependencies...', dependencies.length);
 
-        if (error || stderr.length !== 0) {
-            stderr.split('\n')
-                .map(line => Logger.error(line));
+                const [stdout] = await run(`${cmd} ${format_dep(dependencies, latest)}`);
+
+                stdout.split('\n')
+                    .map(line => Logger.debug(line));
+            }
+
+            if (devDependencies.length !== 0) {
+                Logger.info('Updating %s development dependencies...', devDependencies.length);
+
+                const [stdout] = await run(`${cmd} --dev ${format_dep(devDependencies, latest)}`);
+
+                stdout.split('\n')
+                    .map(line => Logger.debug(line));
+            }
+
+            if (peerDependencies.length !== 0) {
+                Logger.info('Updating %s peer dependencies...', peerDependencies.length);
+
+                const [stdout] = await run(`${cmd} --dev ${format_dep(peerDependencies, latest)}`);
+
+                stdout.split('\n')
+                    .map(line => Logger.debug(line));
+            }
+
+            if (optionalDependencies.length !== 0) {
+                Logger.info('Updating %s dependencies...', optionalDependencies.length);
+
+                const [stdout] = await run(`${cmd} ${format_dep(optionalDependencies, latest)}`);
+
+                stdout.split('\n')
+                    .map(line => Logger.debug(line));
+            }
+        } else {
+            Logger.info('Updating %s dependencies',
+                dependencies.length + devDependencies.length + peerDependencies.length + optionalDependencies.length);
+
+            const [stdout] = await run(`${cmd} upgrade${latest ? ' --latest' : ''}`);
+
+            stdout.split('\n')
+                .map(line => Logger.debug(line));
+        }
+
+        Logger.warn('Running audit checks...');
+
+        if (is_npm) {
+            const [stdout, stderr, error] = await run('npm audit fix');
+
+            stdout.split('\n')
+                .map(line => Logger.debug(line));
+
+            if (error || stderr.length !== 0) {
+                stderr.split('\n')
+                    .map(line => Logger.error(line));
+            }
+        } else {
+            const [stdout, stderr, error] = await run('yarn audit');
+
+            stdout.split('\n')
+                .map(line => Logger.debug(line));
+
+            if (error || stderr.length !== 0) {
+                stderr.split('\n')
+                    .map(line => Logger.error(line));
+            }
         }
     }
 })();
