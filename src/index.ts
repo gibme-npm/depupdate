@@ -62,12 +62,38 @@ const format_dep = (dependencies: string[], latest = false): string =>
     const setup = process.argv.map(e => e.toLowerCase().trim())
         .includes('setup');
 
-    const config = require(resolve(cwd, './package.json'));
+    const config: any = require(resolve(cwd, './package.json'));
 
-    const dependencies = Object.keys(config.dependencies ?? []);
-    const devDependencies = Object.keys(config.devDependencies ?? []);
-    const peerDependencies = Object.keys(config.peerDependencies ?? []);
-    const optionalDependencies = Object.keys(config.optionalDependencies ?? []);
+    const dependencies: {name: string, items: string[], flags?: Partial<{yarn: string, npm: string}>}[] = [
+        {
+            name: 'dependencies',
+            items: Object.keys(config.dependencies ?? []),
+            flags: {
+                npm: '--save'
+            }
+        },
+        {
+            name: 'development dependencies',
+            items: Object.keys(config.devDependencies ?? []),
+            flags: {
+                yarn: '--dev',
+                npm: '--save-dev'
+            }
+        },
+        {
+            name: 'peer dependencies',
+            items: Object.keys(config.peerDependencies ?? []),
+            flags: { yarn: '--peer' }
+        },
+        {
+            name: 'optional dependencies',
+            items: Object.keys(config.optionalDependencies ?? []),
+            flags: {
+                yarn: '--optional',
+                npm: '--save-optional'
+            }
+        }
+    ];
 
     let cmd = 'yarn';
 
@@ -78,17 +104,29 @@ const format_dep = (dependencies: string[], latest = false): string =>
     } else if (is_npm) {
         Logger.warn('NPM detected...');
 
-        if (latest) {
-            cmd = 'npm install --save';
-        } else {
-            cmd = 'npm update --save';
-        }
+        cmd = 'npm install';
     } else if (is_yarn) {
         Logger.warn('Yarn detected...');
+
+        if (!latest) {
+            cmd = 'yarn upgrade';
+        } else {
+            cmd = 'yarn add';
+        }
     } else if (!setup) {
         Logger.error('Cannot detect package management system');
 
         return process.exit(1);
+    }
+
+    for (const category of dependencies) {
+        if (category.items.length !== 0) {
+            Logger.info('Found %s', category.name);
+
+            for (const dependency of category.items) {
+                Logger.info('\t\t%s', dependency);
+            }
+        }
     }
 
     if (setup) {
@@ -114,47 +152,19 @@ const format_dep = (dependencies: string[], latest = false): string =>
             Logger.warn('Set to update all dependencies to latest version within the rules in package.json...');
         }
 
-        if (!is_yarn) {
-            if (dependencies.length !== 0) {
-                Logger.info('Updating %s dependencies...', dependencies.length);
-
-                const [stdout] = await run(`${cmd} ${format_dep(dependencies, latest)}`);
-
-                stdout.split('\n')
-                    .map(line => Logger.debug(line));
+        for (const category of dependencies) {
+            if (category.items.length === 0) {
+                continue;
             }
 
-            if (devDependencies.length !== 0) {
-                Logger.info('Updating %s development dependencies...', devDependencies.length);
+            const deps = format_dep(category.items, latest);
 
-                const [stdout] = await run(`${cmd} --dev ${format_dep(devDependencies, latest)}`);
+            const command_line =
+                `${cmd} ${is_yarn ? category.flags?.yarn || '' : category.flags?.npm || ''} ${deps}`;
 
-                stdout.split('\n')
-                    .map(line => Logger.debug(line));
-            }
+            Logger.warn(command_line);
 
-            if (peerDependencies.length !== 0) {
-                Logger.info('Updating %s peer dependencies...', peerDependencies.length);
-
-                const [stdout] = await run(`${cmd} --dev ${format_dep(peerDependencies, latest)}`);
-
-                stdout.split('\n')
-                    .map(line => Logger.debug(line));
-            }
-
-            if (optionalDependencies.length !== 0) {
-                Logger.info('Updating %s dependencies...', optionalDependencies.length);
-
-                const [stdout] = await run(`${cmd} ${format_dep(optionalDependencies, latest)}`);
-
-                stdout.split('\n')
-                    .map(line => Logger.debug(line));
-            }
-        } else {
-            Logger.info('Updating %s dependencies',
-                dependencies.length + devDependencies.length + peerDependencies.length + optionalDependencies.length);
-
-            const [stdout] = await run(`${cmd} upgrade${latest ? ' --latest' : ''}`);
+            const [stdout] = await run(command_line);
 
             stdout.split('\n')
                 .map(line => Logger.debug(line));
