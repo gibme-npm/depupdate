@@ -1,6 +1,6 @@
 {
   "name": "@gibme/depupdate",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Easily update package dependencies with a simple quick command",
   "bin": {
     "depupdate": "cli.js"
@@ -39,7 +39,8 @@
     "email": "brandonlehmann@gmail.com"
   },
   "dependencies": {
-    "@gibme/logger": "^1.0.4"
+    "@gibme/logger": "^1.0.4",
+    "yarn-audit-fix": "^10.0.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.1",
@@ -55,7 +56,6 @@
     "mocha": "^10.2.0",
     "ts-node": "^10.9.1",
     "typedoc": "^0.24.8",
-    "typescript": "^5.1.6",
-    "yarn-audit-fix": "^10.0.0"
+    "typescript": "^5.1.6"
   }
 }
