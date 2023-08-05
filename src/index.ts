@@ -24,13 +24,26 @@ import { exec } from 'child_process';
 import Logger from '@gibme/logger';
 
 const cwd = process.cwd() ?? './';
+const swd = resolve(__dirname);
 
 const run = async (cmd: string): Promise<[string, string, Error | null]> => {
     return new Promise(resolve => {
         exec(cmd, (error, stdout, stderr) => {
+            stdout.split('\n')
+                .map(line => Logger.debug(line));
+
             return resolve([stdout, stderr, error]);
         });
     });
+};
+
+const runPrintErrors = async (cmd: string) => {
+    const [, stderr, error] = await run(cmd);
+
+    if (error || stderr.length !== 0) {
+        stderr.split('\n')
+            .map(line => Logger.error(line));
+    }
 };
 
 const standardDevDependencies = [
@@ -133,17 +146,11 @@ const format_dep = (dependencies: string[], latest = false): string =>
         Logger.info('Setting up standard development dependencies...');
 
         if (is_npm) {
-            const [stdout] = await run(
+            await run(
                 `npm install --save --dev ${format_dep(standardDevDependencies, latest)}`);
-
-            stdout.split('\n')
-                .map(line => Logger.debug(line));
         } else {
-            const [stdout] = await run(
+            await run(
                 `yarn add --dev ${format_dep(standardDevDependencies, latest)}`);
-
-            stdout.split('\n')
-                .map(line => Logger.debug(line));
         }
     } else {
         if (latest) {
@@ -164,34 +171,24 @@ const format_dep = (dependencies: string[], latest = false): string =>
 
             Logger.warn(command_line);
 
-            const [stdout] = await run(command_line);
-
-            stdout.split('\n')
-                .map(line => Logger.debug(line));
+            await run(command_line);
         }
 
         Logger.warn('Running audit checks...');
 
         if (is_npm) {
-            const [stdout, stderr, error] = await run('npm audit fix');
-
-            stdout.split('\n')
-                .map(line => Logger.debug(line));
-
-            if (error || stderr.length !== 0) {
-                stderr.split('\n')
-                    .map(line => Logger.error(line));
-            }
+            await runPrintErrors('npm audit');
         } else {
-            const [stdout, stderr, error] = await run('yarn audit');
+            await runPrintErrors('yarn audit');
+        }
 
-            stdout.split('\n')
-                .map(line => Logger.debug(line));
+        Logger.warn('Attempting audit fixes...');
 
-            if (error || stderr.length !== 0) {
-                stderr.split('\n')
-                    .map(line => Logger.error(line));
-            }
+        if (is_npm) {
+            await runPrintErrors('npm audit fix');
+        } else {
+            const cmd = resolve(`${swd}/../node_modules/.bin/yarn-audit-fix`);
+            await runPrintErrors(cmd);
         }
     }
 })();
