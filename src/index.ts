@@ -174,21 +174,27 @@ const format_dep = (dependencies: string[], latest = false): string =>
             await run(command_line);
         }
 
-        Logger.warn('Running audit checks...');
+        /**
+         * We have to run at least twice as sometimes the linking that changes requires additional
+         * linking changes
+         */
+        for (let i = 0; i < 2; ++i) {
+            Logger.warn('Running audit checks... attempt #%s', i + 1);
 
-        if (is_npm) {
-            await runPrintErrors('npm audit');
-        } else {
-            await runPrintErrors('yarn audit');
-        }
+            if (is_npm) {
+                await runPrintErrors('npm audit');
+            } else {
+                await runPrintErrors('yarn audit');
+            }
 
-        Logger.warn('Attempting audit fixes...');
+            Logger.warn('Attempting audit fixes...');
 
-        if (is_npm) {
-            await runPrintErrors('npm audit fix');
-        } else {
-            const cmd = resolve(`${swd}/../node_modules/.bin/yarn-audit-fix`);
-            await runPrintErrors(cmd);
+            if (is_npm) {
+                await runPrintErrors('npm audit fix');
+            } else {
+                const cmd = resolve(`${swd}/../node_modules/.bin/yarn-audit-fix`);
+                await runPrintErrors(cmd);
+            }
         }
     }
 })();
