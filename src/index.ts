@@ -37,13 +37,26 @@ const run = async (cmd: string): Promise<[string, string, Error | null]> => {
     });
 };
 
-const runPrintErrors = async (cmd: string) => {
-    const [, stderr, error] = await run(cmd);
+const runPrintErrors = async (cmd: string): Promise<[string, string, Error | null]> => {
+    const [stdout, stderr, error] = await run(cmd);
 
     if (error || stderr.length !== 0) {
         stderr.split('\n')
-            .map(line => Logger.error(line));
+            .filter(line => line.trim().length !== 0)
+            .map(line => Logger.error(line.trim()));
     }
+
+    return [stdout, stderr, error];
+};
+
+const check_for_vulnerabilities = (stdout: string): boolean => {
+    const matcher = stdout.match(/([0-9]*)/gm);
+
+    if (!matcher) {
+        return false;
+    }
+
+    return parseInt(matcher[0] || '0') !== 0;
 };
 
 const standardDevDependencies = [
@@ -181,19 +194,29 @@ const format_dep = (dependencies: string[], latest = false): string =>
         for (let i = 0; i < 2; ++i) {
             Logger.warn('Running audit checks... attempt #%s', i + 1);
 
+            let run_fix = false;
+
             if (is_npm) {
-                await runPrintErrors('npm audit');
+                const [out] = await runPrintErrors('npm audit');
+
+                run_fix = check_for_vulnerabilities(out);
             } else {
-                await runPrintErrors('yarn audit');
+                const [out] = await runPrintErrors('yarn audit');
+
+                run_fix = check_for_vulnerabilities(out);
             }
 
-            Logger.warn('Attempting audit fixes...');
+            if (run_fix) {
+                Logger.warn('Attempting audit fixes...');
 
-            if (is_npm) {
-                await runPrintErrors('npm audit fix');
+                if (is_npm) {
+                    await runPrintErrors('npm audit fix');
+                } else {
+                    const cmd = resolve(`${swd}/../node_modules/.bin/yarn-audit-fix`);
+                    await runPrintErrors(cmd);
+                }
             } else {
-                const cmd = resolve(`${swd}/../node_modules/.bin/yarn-audit-fix`);
-                await runPrintErrors(cmd);
+                break;
             }
         }
     }

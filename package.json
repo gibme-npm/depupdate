@@ -1,6 +1,6 @@
 {
   "name": "@gibme/depupdate",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Easily update package dependencies with a simple quick command",
   "bin": {
     "depupdate": "cli.js"
