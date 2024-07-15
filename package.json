@@ -1,6 +1,6 @@
 {
   "name": "@gibme/depupdate",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Easily update package dependencies with a simple quick command",
   "bin": {
     "depupdate": "cli.js"
@@ -39,7 +39,7 @@
     "email": "brandonlehmann@gmail.com"
   },
   "dependencies": {
-    "@gibme/logger": "^1.0.6",
+    "@gibme/logger": "^1.0.10",
     "yarn-audit-fix": "^10.0.7"
   },
   "devDependencies": {
