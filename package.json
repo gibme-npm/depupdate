@@ -1,6 +1,6 @@
 {
   "name": "@gibme/depupdate",
-  "version": "0.1.8",
+  "version": "0.1.15",
   "description": "Easily update package dependencies with a simple quick command",
   "bin": {
     "depupdate": "cli.js"
@@ -39,12 +39,12 @@
     "email": "brandonlehmann@gmail.com"
   },
   "dependencies": {
-    "@gibme/logger": "^1.0.12",
+    "@gibme/logger": "^1.0.14",
     "yarn-audit-fix": "^10.1.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
-    "@types/node": "^20.11.7",
+    "@types/node": "^22.15.17",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
     "eslint": "^8.56.0",
@@ -55,7 +55,7 @@
     "eslint-plugin-promise": "^6.1.1",
     "mocha": "^10.2.0",
     "ts-node": "^10.9.2",
-    "typedoc": "^0.25.7",
-    "typescript": "^5.3.3"
+    "typedoc": "^0.28.4",
+    "typescript": "^5.8.3"
   }
 }
